@@ -697,7 +697,39 @@ static int mpegts_write_pmt(AVFormatContext *s, MpegTSService *service)
             break;
         case AVMEDIA_TYPE_DATA:
             if (st->codecpar->codec_id == AV_CODEC_ID_SMPTE_KLV) {
-                put_registration_descriptor(&q, MKTAG('K', 'L', 'V', 'A'));
+				if(st->codecpar->profile == FF_PROFILE_KLVA_ASYNC)
+					put_registration_descriptor(&q, MKTAG('K', 'L', 'V', 'A'));
+				else {
+					//Begin metadata_descriptor
+					*q++ = 0x26;
+					*q++ = 0x09;
+					//begin metadata_application_format
+					*q++ = 0x01;
+					*q++ = 0x00;
+					//beging metadata_format
+					*q++ = 0xFF;
+					*q++ = 'K';
+					*q++ = 'L';
+					*q++ = 'V';
+					*q++ = 'A';
+					*q++ = 0x00;
+					*q++ = 0x0f;
+				}
+				//begin metadata_std_descriptor
+                *q++ = 0x27;
+                *q++ = 0x09;
+				//2 reserved bits and metadata_input_leak_rate
+                *q++ = 0xC0;
+                *q++ = 0x02;//0x00;
+                *q++ = 0x71;//0x00;//0x04;
+				//2 reserved bits followed by metadata_buffer_size
+                *q++ = 0xC0;
+                *q++ = 0x00;
+                *q++ = 0x02;//0x00
+				//2 reserved bits followed be metadata_output_leak_Rate
+                *q++ = 0xC0;
+                *q++ = 0x00;
+                *q++ = 0x00;	
             } else if (st->codecpar->codec_id == AV_CODEC_ID_TIMED_ID3) {
                 const char *tag = "ID3 ";
                 *q++ = 0x26; /* metadata descriptor */
@@ -1399,8 +1431,7 @@ static void mpegts_write_pes(AVFormatContext *s, AVStream *st,
                 *q++ = 0xbd;
             } else if (st->codecpar->codec_type == AVMEDIA_TYPE_DATA) {
                 *q++ = stream_id != -1 ? stream_id : 0xfc;
-
-                if (stream_id == 0xbd) /* asynchronous KLV */
+                if (st->codecpar->profile == FF_PROFILE_KLVA_ASYNC) /* asynchronous KLV */
                     pts = dts = AV_NOPTS_VALUE;
             } else {
                 *q++ = 0xbd;

@@ -1286,12 +1286,12 @@ skip:
                     p += sl_header_bytes;
                     buf_size -= sl_header_bytes;
                 }
-                if (pes->stream_type == 0x15 && buf_size >= 5) {
-                    /* skip metadata access unit header */
-                    pes->pes_header_size += 5;
-                    p += 5;
-                    buf_size -= 5;
-                }
+                //if (pes->stream_type == 0x15 && buf_size >= 5) {
+                //    /* skip metadata access unit header */
+                //    pes->pes_header_size += 5;
+                //    p += 5;
+                //    buf_size -= 5;
+                //}
                 if (   pes->ts->fix_teletext_pts
                     && (   pes->st->codecpar->codec_id == AV_CODEC_ID_DVB_TELETEXT
                         || pes->st->codecpar->codec_id == AV_CODEC_ID_DVB_SUBTITLE)
@@ -2193,6 +2193,12 @@ int ff_parse_mpeg2_descriptor(AVFormatContext *fc, AVStream *st, int stream_type
     default:
         break;
     }
+    if (st->codecpar->codec_id == AV_CODEC_ID_SMPTE_KLV)
+		if(stream_type == STREAM_TYPE_PRIVATE_DATA)
+          st->codecpar->profile = FF_PROFILE_KLVA_ASYNC;
+	    else if(stream_type == STREAM_TYPE_METADATA)
+			st->codecpar->profile = FF_PROFILE_KLVA_SYNC;
+
     *pp = desc_end;
     return 0;
 }
